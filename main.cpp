@@ -1,29 +1,31 @@
 #include <iostream>
+#include <fstream>
+#include <cstdint>
 
 template<class T> class Obraz {
 	T** pole;
 	int width, length;
 
 public:
-	// Inicializaèní konstruktor
-	Obraz() {
+	//// Inicializaèní konstruktor
+	//Obraz() {
 
-	}
+	//}
 
-	// Kopírovací konstruktor
-	Obraz() {
+	//// Kopírovací konstruktor
+	//Obraz() {
 
-	}
+	//}
 
-	// Konverzní konstruktor
-	Obraz() {
+	//// Konverzní konstruktor
+	//Obraz() {
 
-	}
+	//}
 
-	// Destruktor
-	~Obraz() {
+	//// Destruktor
+	//~Obraz() {
 
-	}
+	//}
 
 	// Binární operátory +, -, * (konvoluce), +=, -=
 	friend Obraz operator+(const Obraz& operand1, const Obraz& operand2);
@@ -76,50 +78,59 @@ public:
 	}
 };
 
-// Binární operátor +
-Obraz operator+(const Obraz& operand1, const Obraz& operand2) {
-	Obraz result();
-
-	return result;
-}
-// Binární operátor -
-Obraz operator-(const Obraz& operand1, const Obraz& operand2) {
-	Obraz result();
-
-	return result;
-}
-// Binární operátor * (konvoluce)
-Obraz operator*(const Obraz& operand1, const Obraz& operand2) {
-	Obraz result();
-
-	return result;
-}
-// Binární operátor +=
-Obraz operator+=(const Obraz& operand1, const Obraz& operand2) {
-	Obraz result();
-
-	return result;
-}
-// Binární operátor -=
-Obraz operator-=(const Obraz& operand1, const Obraz& operand2) {
-	Obraz result();
-
-	return result;
-}
-
-// Operátor << pro uložení do souboru
-std::ostream& operator<<(std::ostream& out, Obraz& x) {
-
-	return out;
-}
+//// Binární operátor +
+//Obraz operator+(const Obraz& operand1, const Obraz& operand2) {
+//	Obraz result();
+//
+//	return result;
+//}
+//// Binární operátor -
+//Obraz operator-(const Obraz& operand1, const Obraz& operand2) {
+//	Obraz result();
+//
+//	return result;
+//}
+//// Binární operátor * (konvoluce)
+//Obraz operator*(const Obraz& operand1, const Obraz& operand2) {
+//	Obraz result();
+//
+//	return result;
+//}
+//// Binární operátor +=
+//Obraz operator+=(const Obraz& operand1, const Obraz& operand2) {
+//	Obraz result();
+//
+//	return result;
+//}
+//// Binární operátor -=
+//Obraz operator-=(const Obraz& operand1, const Obraz& operand2) {
+//	Obraz result();
+//
+//	return result;
+//}
+//
+//// Operátor << pro uložení do souboru
+//std::ostream& operator<<(std::ostream& out, Obraz& x) {
+//
+//	return out;
+//}
 
 class Pixel {
 
 };
 
-
 int main() {
 	std::cout << "Hello World" << std::endl;
+
+	std::ifstream file;
+	char test[14];
+
+	file.open("bmp_test_input_bw.bmp", std::ios::binary | std::ios::in);
+	file.read((char*)&test, sizeof(test));
+
+	for (int i = 0; i < 14; i++) {
+		std::cout << std::hex << (unsigned int)test[i] << " ";
+	}
 
 	return 0;
 }
