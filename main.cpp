@@ -130,26 +130,26 @@ int main() {
 	uint8_t file_header[FILE_HEADER_SIZE]; // Buffer pro BMP hlavièku (prvních 14 bytù souboru)
 	uint8_t info_header[INFO_HEADER_SIZE];
 
-	file.open("bmp_test_input_bw.bmp", std::ios::binary | std::ios::in);
+	file.open("bmp_test_input_24bit.bmp", std::ios::binary | std::ios::in);
 	file.read((char*)&file_header, sizeof(file_header));
 	file.read((char*)&info_header, sizeof(info_header));
 
 	// Promìnné pro konkrétní data pøeètená z hlavièky souboru
 	uint8_t signature[2];
-	uint32_t file_size; // Velková velikost souboru v bytech
+	uint32_t file_size; // Celková velikost souboru v bytech
 	uint32_t data_offset; // Offset, neboli adresa v bajtech, kde se nachází pixelové data
 
-	uint32_t info_header_size;
-	uint32_t bm_width;
-	uint32_t bm_height;
-	uint16_t plane_count;
-	uint16_t bit_depth;
-	uint32_t compression;
-	uint32_t image_size;
-	uint32_t h_res;
-	uint32_t v_res;
-	uint32_t num_colors;
-	uint32_t num_important_colors;
+	uint32_t info_header_size; // Velikost informaèní hlavièky (mùže být rùzná v závislosti na formátu, standardnì 40 bytù, potenciálnì vìtší)
+	uint32_t bm_width; // Šíøka bitové mapy v pixelech
+	uint32_t bm_height; // Výška bitové mapy v pixelech
+	uint16_t plane_count; // Poèet vrstev (musí být 1)
+	uint16_t bit_depth; // Bitová hloubka
+	uint32_t compression; // Typ komprese, 0 znamená bez komprese
+	uint32_t image_size; // Velikost obrázku (po kompresi)
+	uint32_t h_res; // Horizontální rozlišení v pixelech na metr
+	uint32_t v_res; // Vertikální rozlišení v pixelech na metr
+	uint32_t num_colors; // Celkový poèet barev v paletì
+	uint32_t num_important_colors; // Poèet dùležitých barev, 0 pokud všechny
 	
 	memcpy(&signature, &file_header[0], 2);
 	memcpy(&file_size, &file_header[2], 4);
@@ -178,7 +178,7 @@ int main() {
 	std::cout << "Info header size (bytes): " << info_header_size << std::endl;
 	std::cout << "Bitmap width (pixels): " << bm_width << std::endl;
 	std::cout << "Bitmap height (pixels): " << bm_height << std::endl;
-	std::cout << "Number of planes: " << plane_count << std::endl;
+	std::cout << "Number of color planes: " << plane_count << std::endl;
 	std::cout << "Bit depth (bits): " << bit_depth << std::endl;
 	std::cout << "Compression type (0 = no compression): " << compression << std::endl;
 	std::cout << "(Compressed) image size (bytes): " << image_size << std::endl;
@@ -186,6 +186,38 @@ int main() {
 	std::cout << "Vertical resolution (pixels/meter): " << v_res << std::endl;
 	std::cout << "Number of colors: " << num_colors << std::endl;
 	std::cout << "Number of important colors: " << num_important_colors << std::endl;
+
+	int pad_count = 4 - ((bm_width * 3) % 4);
+
+	uint8_t* bitmap;
+	bitmap = new uint8_t[image_size];
+	std::cout << sizeof(bitmap);
+
+	//file.seekg(data_offset, std::ios::beg);
+	file.read((char*)bitmap, image_size);
+
+	for (int i = 0; i < image_size; i++) {
+		std::cout << (int)bitmap[i] << ",";
+
+		if ((i + 1) % 32 == 0 && i != 0) std::cout << std::endl;
+	}
+
+	//for (int i = 0; i < bm_height; i++) {
+	//	for (int j = 0; j < bm_width; j++) {
+	//		std::cout << bitmap[3 * j + i] << "," << bitmap[3 * j + i + 1] << "," << bitmap[3 * j + i + 2] << " ";
+	//	}
+
+	//	std::cout << std::endl;
+	//}
+
+	std::ofstream test("test.bmp", std::ios::binary | std::ios::out);
+	
+	test.write((const char*)file_header, FILE_HEADER_SIZE);
+	test.write((const char*)info_header, INFO_HEADER_SIZE);
+	test.write((const char*)bitmap, image_size);
+
+
+	test.close();
 
 	return 0;
 }
