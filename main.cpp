@@ -1,35 +1,92 @@
 #include <iostream>
 #include <fstream>
-#include <cstdint>
-#include <bitset>
+#include <cstdint> // uinty
+#include <bitset> //bin dump
+#include <cstddef> //std::byte
 
-#define FILE_HEADER_SIZE 14
-#define INFO_HEADER_SIZE 40
+#define FILE_HEADER_SIZE_BYTES 14
+#define INFO_HEADER_SIZE_BYTES 40
+#define DEBUG
 
-template<class T> class Obraz {
-	T** pole;
-	int width, length;
+class Pixel_24bit {
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
 
 public:
-	//// Inicializaèní konstruktor
-	//Obraz() {
+	void set_color_rgb(uint8_t red, uint8_t green, uint8_t blue) {
+		this->red = red;
+		this->green = green;
+		this->blue = blue;
+	}
 
-	//}
+	uint8_t get_red() {
+		return red;
+	}
+	uint8_t get_green() {
+		return green;
+	}
+	uint8_t get_blue() {
+		return blue;
+	}
+};
 
-	//// Kopírovací konstruktor
-	//Obraz() {
+// Primární obrazová šablona
+template<class T> class Obraz {
+	T** bitmap;
+	int width, height;
 
-	//}
+public:
+	//// inicializaèní konstruktor
+	Obraz() {
+
+	}
+
+	// Kopírovací konstruktor
+	Obraz(const Obraz& x) {
+		// Alokace pamìti
+		bitmap = new T * [height = x.height];
+		for (int i = 0; i < height; i++) {
+			bitmap[i] = new T[width = x.width];
+		}
+
+		// Kopírování dat
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				bitmap[i][j] = x.bitmap[i][j];
+			}
+		}
+	}
 
 	//// Konverzní konstruktor
 	//Obraz() {
 
 	//}
 
-	//// Destruktor
-	//~Obraz() {
+	// Destruktor dealokující pole bitové mapy
+	~Obraz() {
+		for (int i = 0; i < this->height; i++) {
+			delete[] bitmap[i];
+		}
+		delete[] bitmap;
+	}
 
-	//}
+	// Funkce pro filtraci obrazu, prahování, detekci objektu
+	Obraz filter() {
+		Obraz result();
+
+		return result;
+	}
+	Obraz prahovani() {
+		Obraz result();
+
+		return result;
+	}
+	Obraz object_detection() {
+		Obraz result();
+
+		return result;
+	}
 
 	// Binární operátory +, -, * (konvoluce), +=, -=
 	friend Obraz operator+(const Obraz& operand1, const Obraz& operand2);
@@ -58,28 +115,119 @@ public:
 
 	// Operátor [] pro vracení/pøiøazení intenzity pixelu
 	T* operator[](int i) const {
-		return pole[i];
+		return bitmap[i];
 	}
 
 	// Operátor << pro uložení do souboru
-	friend std::ostream& operator<<(std::ostream& out, Obraz& x);
+	template<class P> friend std::ofstream& operator<<(std::ofstream& out, Obraz<P>& x);
+
+	// Operátor >> pro naètení obrazu ze souboru BMP
+	template<class P> friend std::ifstream& operator>>(std::ifstream& in, Obraz<P>& x);
+};
+
+// Specializace na 24 bitové pixely
+template<> class Obraz<Pixel_24bit> {
+	Pixel_24bit** bitmap;
+	int width, height;
+
+public:
+	// inicializaèní konstruktor
+	Obraz() {
+		width = 0;
+		height = 0;
+
+		bitmap = new Pixel_24bit * [height];
+		for (int i = 0; i < height; i++) {
+			bitmap[i] = new Pixel_24bit[width];
+		}
+
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++)
+				bitmap[i][j].set_color_rgb(0, 0, 0);
+		}
+	}
+
+	// Kopírovací konstruktor
+	Obraz(const Obraz& x) {
+		// Alokace pamìti
+		bitmap = new Pixel_24bit * [height = x.height];
+		for (int i = 0; i < height; i++) {
+			bitmap[i] = new Pixel_24bit[width = x.width];
+		}
+
+		// Kopírování dat
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				bitmap[i][j] = x.bitmap[i][j];
+			}
+		}
+	}
+
+	//// Konverzní konstruktor
+	//Obraz() {
+
+	//}
+
+	// Destruktor dealokující pole bitové mapy
+	~Obraz() {
+		for (int i = 0; i < this->height; i++) {
+			delete[] bitmap[i];
+		}
+		delete[] bitmap;
+	}
 
 	// Funkce pro filtraci obrazu, prahování, detekci objektu
-	Obraz filter() {
-		Obraz result();
+	//Obraz filter() {
+	//	Obraz result();
 
-		return result;
-	}
-	Obraz prahovani() {
-		Obraz result();
+	//	return result;
+	//}
+	//Obraz prahovani() {
+	//	Obraz result();
 
-		return result;
-	}
-	Obraz object_detection() {
-		Obraz result();
+	//	return result;
+	//}
+	//Obraz object_detection() {
+	//	Obraz result();
 
-		return result;
+	//	return result;
+	//}
+
+	// Binární operátory +, -, * (konvoluce), +=, -=
+	friend Obraz operator+(const Obraz& operand1, const Obraz& operand2);
+	friend Obraz operator-(const Obraz& operand1, const Obraz& operand2);
+	friend Obraz operator*(const Obraz& operand1, const Obraz& operand2);
+	friend Obraz operator+=(const Obraz& operand1, const Obraz& operand2);
+	friend Obraz operator-=(const Obraz& operand1, const Obraz& operand2);
+
+	// Unární operátor ~ pro výpoèet negativu
+	//Obraz operator~() {
+	//	Obraz result();
+
+	//	return result;
+	//}
+
+	// Operátory pro rovnost, nerovnost, pøiøazení
+	Obraz& operator==(const Obraz& operand) {
+
 	}
+	Obraz& operator!=(const Obraz& operand) {
+
+	}
+	Obraz& operator=(const Obraz& operand) {
+
+	}
+
+	// Operátor [] pro vracení/pøiøazení intenzity pixelu
+	Pixel_24bit* operator[](int i) const {
+		return bitmap[i];
+	}
+
+	// Operátor << pro uložení do souboru
+	friend std::ofstream& operator<<(std::ofstream& out, Obraz<Pixel_24bit>& x);
+
+	// Operátor >> pro naètení obrazu ze souboru BMP
+	friend std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x);
 };
 
 //// Binární operátor +
@@ -119,61 +267,57 @@ public:
 //	return out;
 //}
 
-class Pixel {
+// Operátor >> pro naètení obrazu z 24 bitového BMP souboru
+std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x) {
+	std::byte file_header_read_buff[FILE_HEADER_SIZE_BYTES]; // Buffer pro BMP hlavièku (prvních 14 bytù souboru)
+	std::byte info_header_read_buff[INFO_HEADER_SIZE_BYTES]; // Buffer pro informaèní hlavièku souboru BMP (následujících 4O bytù)
 
-};
+	in.read((char*)&file_header_read_buff, sizeof(file_header_read_buff));
+	in.read((char*)&info_header_read_buff, sizeof(info_header_read_buff));
 
-int main() {
-	std::cout << "Hello World" << std::endl;
-
-	std::ifstream file;
-	uint8_t file_header[FILE_HEADER_SIZE]; // Buffer pro BMP hlavièku (prvních 14 bytù souboru)
-	uint8_t info_header[INFO_HEADER_SIZE];
-
-	file.open("bmp_test_input_24bit.bmp", std::ios::binary | std::ios::in);
-	file.read((char*)&file_header, sizeof(file_header));
-	file.read((char*)&info_header, sizeof(info_header));
-
-	// Promìnné pro konkrétní data pøeètená z hlavièky souboru
-	uint8_t signature[2];
+	/* Promìnné pro konkrétní data pøeètená ze souborové hlavièky */
+	unsigned char signature[2]; // Slouží pro identifikaci souboru jako BMP
 	uint32_t file_size; // Celková velikost souboru v bytech
-	uint32_t data_offset; // Offset, neboli adresa v bajtech, kde se nachází pixelové data
+	uint32_t data_offset; // Offset, neboli adresa bytu, kde se nachází obrazové data
 
+	/* Promìnné pro konkrétní data pøeètená z informaèní hlavièky */
 	uint32_t info_header_size; // Velikost informaèní hlavièky (mùže být rùzná v závislosti na formátu, standardnì 40 bytù, potenciálnì vìtší)
-	uint32_t bm_width; // Šíøka bitové mapy v pixelech
-	uint32_t bm_height; // Výška bitové mapy v pixelech
+	int32_t bm_width; // Šíøka bitové mapy v pixelech (signed int)
+	int32_t bm_height; // Výška bitové mapy v pixelech (signed int)
 	uint16_t plane_count; // Poèet vrstev (musí být 1)
 	uint16_t bit_depth; // Bitová hloubka
 	uint32_t compression; // Typ komprese, 0 znamená bez komprese
 	uint32_t image_size; // Velikost obrázku (po kompresi)
-	uint32_t h_res; // Horizontální rozlišení v pixelech na metr
-	uint32_t v_res; // Vertikální rozlišení v pixelech na metr
+	int32_t h_res; // Horizontální rozlišení v pixelech na metr (signed int)
+	int32_t v_res; // Vertikální rozlišení v pixelech na metr (signed int)
 	uint32_t num_colors; // Celkový poèet barev v paletì
 	uint32_t num_important_colors; // Poèet dùležitých barev, 0 pokud všechny
-	
-	memcpy(&signature, &file_header[0], 2);
-	memcpy(&file_size, &file_header[2], 4);
-	memcpy(&data_offset, &file_header[10], 4);
 
-	memcpy(&info_header_size, &info_header[0], 4);
-	memcpy(&bm_width, &info_header[4], 4);
-	memcpy(&bm_height, &info_header[8], 4);
-	memcpy(&plane_count, &info_header[12], 2);
-	memcpy(&bit_depth, &info_header[14], 2);
-	memcpy(&compression, &info_header[16], 4);
-	memcpy(&image_size, &info_header[20], 4);
-	memcpy(&h_res, &info_header[24], 4);
-	memcpy(&v_res, &info_header[28], 4);
-	memcpy(&num_colors, &info_header[32], 4);
-	memcpy(&num_important_colors, &info_header[36], 4);
+	/* Promìnné jsou naplnìny pøímým kopírováním pamìti */
+	memcpy(&signature, &file_header_read_buff[0], 2);
+	memcpy(&file_size, &file_header_read_buff[2], 4);
+	memcpy(&data_offset, &file_header_read_buff[10], 4);
 
-	std::cout << std::endl << "FILE HEADER:" << std::endl;
+	memcpy(&info_header_size, &info_header_read_buff[0], 4);
+	memcpy(&bm_width, &info_header_read_buff[4], 4);
+	memcpy(&bm_height, &info_header_read_buff[8], 4);
+	memcpy(&plane_count, &info_header_read_buff[12], 2);
+	memcpy(&bit_depth, &info_header_read_buff[14], 2);
+	memcpy(&compression, &info_header_read_buff[16], 4);
+	memcpy(&image_size, &info_header_read_buff[20], 4);
+	memcpy(&h_res, &info_header_read_buff[24], 4);
+	memcpy(&v_res, &info_header_read_buff[28], 4);
+	memcpy(&num_colors, &info_header_read_buff[32], 4);
+	memcpy(&num_important_colors, &info_header_read_buff[36], 4);
+
+#ifdef DEBUG
+	std::cout << std::endl << "===FILE HEADER===" << std::endl;
 
 	std::cout << "File signature: " << signature[0] << signature[1] << std::endl;
 	std::cout << "File size (bytes): " << file_size << std::endl;
 	std::cout << "Data offset (bytes): " << data_offset << std::endl;
 
-	std::cout << std::endl << "INFO HEADER:" << std::endl;
+	std::cout << std::endl << "===INFO HEADER===" << std::endl;
 
 	std::cout << "Info header size (bytes): " << info_header_size << std::endl;
 	std::cout << "Bitmap width (pixels): " << bm_width << std::endl;
@@ -186,38 +330,130 @@ int main() {
 	std::cout << "Vertical resolution (pixels/meter): " << v_res << std::endl;
 	std::cout << "Number of colors: " << num_colors << std::endl;
 	std::cout << "Number of important colors: " << num_important_colors << std::endl;
+#endif // DEBUG
 
-	int pad_count = 4 - ((bm_width * 3) % 4);
+	// Read buff pro samotné obrazové data je dynamicky alokovaný podle velikosti pøeètené z hlavièky
+	std::byte* bitmap_read_buff;
+	bitmap_read_buff = new std::byte[image_size];
 
-	uint8_t* bitmap;
-	bitmap = new uint8_t[image_size];
-	std::cout << sizeof(bitmap);
+	in.read((char*)bitmap_read_buff, image_size);
 
-	//file.seekg(data_offset, std::ios::beg);
-	file.read((char*)bitmap, image_size);
+	// BMP soubory zaokrouhluijí rozmìry obrázku na násobky 4, proto je nutné zjistit kolik bytù bylo použito na padding
+	int pad_bytes_count = 4 - ((bm_width * 3) % 4); // Násobení tøemi protože každý pixel má tøi byty (24 bit)
 
-	for (int i = 0; i < image_size; i++) {
-		std::cout << (int)bitmap[i] << ",";
-
-		if ((i + 1) % 32 == 0 && i != 0) std::cout << std::endl;
+	// Pokud má objekt alkovanou pamì pro bitovou mapu, je potøeba ji dealokovat
+	if (x.bitmap != NULL) {
+		for (int i = 0; i < x.height; i++) {
+			delete[] x.bitmap[i];
+		}
+		delete[] x.bitmap;
 	}
 
-	//for (int i = 0; i < bm_height; i++) {
-	//	for (int j = 0; j < bm_width; j++) {
-	//		std::cout << bitmap[3 * j + i] << "," << bitmap[3 * j + i + 1] << "," << bitmap[3 * j + i + 2] << " ";
-	//	}
+	// Následnì alokujeme pamì podle rozmìrù pøeètených z hlavièky souboru
+	x.bitmap = new Pixel_24bit * [bm_height];
+	for (int i = 0; i < bm_height; i++) {
+		x.bitmap[i] = new Pixel_24bit[bm_width];
+	}
 
-	//	std::cout << std::endl;
-	//}
+	// A pøeèteme bitovou mapu ze souboru do objektu
+	for (int i = 0; i < bm_height; i++) {
+		for (int j = 0; j < bm_width; j++) {
+			uint8_t red, green, blue;
 
-	std::ofstream test("test.bmp", std::ios::binary | std::ios::out);
+			memcpy(&blue, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3], 1);
+			memcpy(&green, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3 + 1], 1);
+			memcpy(&red, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3 + 2], 1);
+
+			x.bitmap[i][j].set_color_rgb(red, green, blue); // BMP používá poøadí barev BGR místo RGB
+		}
+	}
+
+	x.height = bm_height;
+	x.width = bm_width;
+
+	delete[] bitmap_read_buff;
+
+	return in;
+}
+
+// Operátor << pro uložení do 24 bitového BMP souboru
+std::ofstream& operator<<(std::ofstream& out, Obraz<Pixel_24bit>& x) {
+	unsigned char file_header_write_buff[FILE_HEADER_SIZE_BYTES]; // Buffer pro BMP hlavièku (prvních 14 bytù souboru)
+	unsigned char info_header_write_buff[INFO_HEADER_SIZE_BYTES]; // Buffer pro informaèní hlavièku souboru BMP (následujících 4O bytù)
+
+	int pad_bytes_count = 4 - ((x.width * 3) % 4); // Násobení tøemi protože každý pixel má tøi byty (24 bit)
+
+	/* Promìnné pro konkrétní data souborové hlavièky */
+	unsigned char signature[2] = {'B', 'M'}; // Slouží pro identifikaci souboru jako BMP
+	uint32_t file_size = FILE_HEADER_SIZE_BYTES + INFO_HEADER_SIZE_BYTES + (x.width * 3 + pad_bytes_count) * x.height; // Celková velikost souboru v bytech
+	uint32_t data_offset = FILE_HEADER_SIZE_BYTES + INFO_HEADER_SIZE_BYTES; // Offset, neboli adresa bytu, kde se nachází obrazové data
+
+	/* Promìnné pro konkrétní data informaèní hlavièky */
+	uint32_t info_header_size = INFO_HEADER_SIZE_BYTES; // Velikost informaèní hlavièky (mùže být rùzná v závislosti na formátu, standardnì 40 bytù, potenciálnì vìtší)
+	int32_t bm_width = x.width; // Šíøka bitové mapy v pixelech (signed int)
+	int32_t bm_height = x.height; // Výška bitové mapy v pixelech (signed int)
+	uint16_t plane_count = 1; // Poèet vrstev (musí být 1)
+	uint16_t bit_depth = 24; // Bitová hloubka
+	uint32_t compression = 0; // Typ komprese, 0 znamená bez komprese
+	uint32_t image_size = (x.width * 3 + pad_bytes_count) * x.height; // Velikost obrázku (po kompresi)
+	int32_t h_res = 0; // Horizontální rozlišení v pixelech na metr (signed int)
+	int32_t v_res = 0; // Vertikální rozlišení v pixelech na metr (signed int)
+	uint32_t num_colors = 0; // Celkový poèet barev v paletì
+	uint32_t num_important_colors = 0; // Poèet dùležitých barev, 0 pokud všechny
+
+	memcpy(&file_header_write_buff[0], &signature, 2);
+	memcpy(&file_header_write_buff[2], &file_size, 4);
+	memcpy(&file_header_write_buff[10], &data_offset, 4);
+
+	memcpy(&info_header_write_buff[0], &info_header_size, 4);
+	memcpy(&info_header_write_buff[4], &bm_width, 4);
+	memcpy(&info_header_write_buff[8], &bm_height, 4);
+	memcpy(&info_header_write_buff[12], &plane_count, 2);
+	memcpy(&info_header_write_buff[14], &bit_depth, 2);
+	memcpy(&info_header_write_buff[16], &compression, 4);
+	memcpy(&info_header_write_buff[20], &image_size, 4);
+	memcpy(&info_header_write_buff[24], &h_res, 4);
+	memcpy(&info_header_write_buff[28], &v_res, 4);
+	memcpy(&info_header_write_buff[32], &num_colors, 4);
+	memcpy(&info_header_write_buff[36], &num_important_colors, 4);
 	
-	test.write((const char*)file_header, FILE_HEADER_SIZE);
-	test.write((const char*)info_header, INFO_HEADER_SIZE);
-	test.write((const char*)bitmap, image_size);
+	for (int i = 0; i < FILE_HEADER_SIZE_BYTES; i++) {
+		out << file_header_write_buff[i];
+	}
+	for (int i = 0; i < INFO_HEADER_SIZE_BYTES; i++) {
+		out << info_header_write_buff[i];
+	}
 
+	for (int i = 0; i < bm_height; i++) {
+		for (int j = 0; j < bm_width; j++) {
+			out << (unsigned char)x.bitmap[i][j].get_blue() << (unsigned char)x.bitmap[i][j].get_green() << (unsigned char)x.bitmap[i][j].get_red();
+		}
 
-	test.close();
+		for (int j = 0; j < pad_bytes_count; j++) {
+			unsigned char pad_byte = 0;
+			out << pad_byte;
+		}
+	}
+
+	return out;
+}
+
+int main() {
+	std::cout << "Hello World" << std::endl;
+
+	Obraz<Pixel_24bit> A;
+
+	std::ifstream file;
+	file.open("bmp_test_input_24bit.bmp", std::ios::binary | std::ios::in);
+
+	file >> A;
+
+	std::ofstream ofile;
+	ofile.open("testoutput.bmp", std::ios::binary | std::ios::out);
+	ofile << A;
+
+	file.close();
+	ofile.close();
 
 	return 0;
 }
