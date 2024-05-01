@@ -358,11 +358,13 @@ std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x) {
 	// A pøeèteme bitovou mapu ze souboru do objektu
 	for (int i = 0; i < bm_height; i++) {
 		for (int j = 0; j < bm_width; j++) {
-			uint8_t red, green, blue;
+			uint8_t red = 0, green = 0, blue;
 
-			memcpy(&blue, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3], 1);
-			memcpy(&green, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3 + 1], 1);
-			memcpy(&red, &bitmap_read_buff[i * pad_bytes_count + i * bm_width + j * 3 + 2], 1);
+			int padding = i * pad_bytes_count;
+
+			memcpy(&blue, &bitmap_read_buff[padding + (i * bm_width + j) * 3], 1);
+			memcpy(&green, &bitmap_read_buff[padding + (i * bm_width + j) * 3 + 1], 1);
+			memcpy(&red, &bitmap_read_buff[padding + (i * bm_width + j) * 3 + 2], 1);
 
 			x.bitmap[i][j].set_color_rgb(red, green, blue); // BMP používá poøadí barev BGR místo RGB
 		}
