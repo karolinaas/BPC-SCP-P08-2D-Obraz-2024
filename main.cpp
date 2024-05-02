@@ -34,7 +34,7 @@ public:
 // Primární obrazová šablona
 template<class T> class Obraz {
 	T** bitmap;
-	int width, height;
+	int32_t width, height;
 
 public:
 	//// inicializaèní konstruktor
@@ -46,13 +46,13 @@ public:
 	Obraz(const Obraz& x) {
 		// Alokace pamìti
 		bitmap = new T * [height = x.height];
-		for (int i = 0; i < height; i++) {
+		for (int32_t i = 0; i < height; i++) {
 			bitmap[i] = new T[width = x.width];
 		}
 
 		// Kopírování dat
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
 				bitmap[i][j] = x.bitmap[i][j];
 			}
 		}
@@ -65,7 +65,7 @@ public:
 
 	// Destruktor dealokující pole bitové mapy
 	~Obraz() {
-		for (int i = 0; i < this->height; i++) {
+		for (int32_t i = 0; i < this->height; i++) {
 			delete[] bitmap[i];
 		}
 		delete[] bitmap;
@@ -114,7 +114,7 @@ public:
 	}
 
 	// Operátor [] pro vracení/pøiøazení intenzity pixelu
-	T* operator[](int i) const {
+	T* operator[](int32_t i) const {
 		return bitmap[i];
 	}
 
@@ -128,7 +128,7 @@ public:
 // Specializace na 24 bitové pixely
 template<> class Obraz<Pixel_24bit> {
 	Pixel_24bit** bitmap;
-	int width, height;
+	int32_t width, height;
 
 public:
 	// inicializaèní konstruktor
@@ -137,12 +137,24 @@ public:
 		height = 0;
 
 		bitmap = new Pixel_24bit * [height];
-		for (int i = 0; i < height; i++) {
+		for (int32_t i = 0; i < height; i++) {
 			bitmap[i] = new Pixel_24bit[width];
 		}
 
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++)
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++)
+				bitmap[i][j].set_color_rgb(0, 0, 0);
+		}
+	}
+
+	Obraz(int32_t width, int32_t height) {
+		bitmap = new Pixel_24bit * [this->height = height];
+		for (int32_t i = 0; i < height; i++) {
+			bitmap[i] = new Pixel_24bit[this->width = width];
+		}
+
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++)
 				bitmap[i][j].set_color_rgb(0, 0, 0);
 		}
 	}
@@ -151,13 +163,13 @@ public:
 	Obraz(const Obraz& x) {
 		// Alokace pamìti
 		bitmap = new Pixel_24bit * [height = x.height];
-		for (int i = 0; i < height; i++) {
+		for (int32_t i = 0; i < height; i++) {
 			bitmap[i] = new Pixel_24bit[width = x.width];
 		}
 
 		// Kopírování dat
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
 				bitmap[i][j] = x.bitmap[i][j];
 			}
 		}
@@ -170,7 +182,7 @@ public:
 
 	// Destruktor dealokující pole bitové mapy
 	~Obraz() {
-		for (int i = 0; i < this->height; i++) {
+		for (int32_t i = 0; i < this->height; i++) {
 			delete[] bitmap[i];
 		}
 		delete[] bitmap;
@@ -201,25 +213,64 @@ public:
 	friend Obraz operator-=(const Obraz& operand1, const Obraz& operand2);
 
 	// Unární operátor ~ pro vıpoèet negativu
-	//Obraz operator~() {
-	//	Obraz result();
+	Obraz<Pixel_24bit> operator~() {
+		Obraz<Pixel_24bit> result(width, height);
 
-	//	return result;
-	//}
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
+				uint8_t inv_red = 255 - bitmap[i][j].get_red();
+				uint8_t inv_green = 255 - bitmap[i][j].get_green();
+				uint8_t inv_blue = 255 - bitmap[i][j].get_blue();
+
+				bitmap[i][j].set_color_rgb(inv_red, inv_green, inv_blue);
+			}
+		}
+
+		return result;
+	}
 
 	// Operátory pro rovnost, nerovnost, pøiøazení
-	Obraz& operator==(const Obraz& operand) {
+	bool operator==(const Obraz& operand) {
+		if (width != operand.width) return false;
+		if (height != operand.height) return false;
 
+		for (int32_t i = 0; i < height; i++) {
+			for (uint32_t j = 0; j < width; j++) {
+				if (bitmap[i][j].get_red() != operand.bitmap[i][j].get_red()) return false;
+				if (bitmap[i][j].get_green() != operand.bitmap[i][j].get_green()) return false;
+				if (bitmap[i][j].get_blue() != operand.bitmap[i][j].get_blue()) return false;
+			}
+		}
+
+		return true;
 	}
-	Obraz& operator!=(const Obraz& operand) {
-
+	bool operator!=(const Obraz& operand) {
+		return !(*this == operand);
 	}
 	Obraz& operator=(const Obraz& operand) {
+		if (bitmap != NULL) {
+			for (int32_t i = 0; i < height; i++) {
+				delete[] bitmap[i];
+			}
+			delete[] bitmap;
+		}
 
+		bitmap = new Pixel_24bit * [height = operand.height];
+		for (int32_t i = 0; i < height; i++) {
+			bitmap[i] = new Pixel_24bit[width = operand.width];
+		}
+
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
+				bitmap[i][j] = operand.bitmap[i][j];
+			}
+		}
+
+		return *this;
 	}
 
 	// Operátor [] pro vracení/pøiøazení intenzity pixelu
-	Pixel_24bit* operator[](int i) const {
+	Pixel_24bit* operator[](int32_t i) const {
 		return bitmap[i];
 	}
 
@@ -339,11 +390,11 @@ std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x) {
 	in.read((char*)bitmap_read_buff, image_size);
 
 	// BMP soubory zaokrouhluijí rozmìry obrázku na násobky 4, proto je nutné zjistit kolik bytù bylo pouito na padding
-	int pad_bytes_count = 4 - ((bm_width * 3) % 4); // Násobení tøemi protoe kadı pixel má tøi byty (24 bit)
+	int32_t pad_bytes_count = ((bm_width * 3) % 4); // Násobení tøemi protoe kadı pixel má tøi byty (24 bit)
 
 	// Pokud má objekt alkovanou pamì pro bitovou mapu, je potøeba ji dealokovat
 	if (x.bitmap != NULL) {
-		for (int i = 0; i < x.height; i++) {
+		for (int32_t i = 0; i < x.height; i++) {
 			delete[] x.bitmap[i];
 		}
 		delete[] x.bitmap;
@@ -351,20 +402,21 @@ std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x) {
 
 	// Následnì alokujeme pamì podle rozmìrù pøeètenıch z hlavièky souboru
 	x.bitmap = new Pixel_24bit * [bm_height];
-	for (int i = 0; i < bm_height; i++) {
+	for (int32_t i = 0; i < bm_height; i++) {
 		x.bitmap[i] = new Pixel_24bit[bm_width];
 	}
 
 	// A pøeèteme bitovou mapu ze souboru do objektu
-	for (int i = 0; i < bm_height; i++) {
-		for (int j = 0; j < bm_width; j++) {
-			uint8_t red = 0, green = 0, blue;
+	for (int32_t i = 0; i < bm_height; i++) {
+		for (int32_t j = 0; j < bm_width; j++) {
+			uint8_t red, green, blue;
 
-			int padding = i * pad_bytes_count;
+			int32_t padding = i * pad_bytes_count;
+			int32_t pixel_pos = (i * bm_width + j) * 3; // Násobení tøemi protoe kadı pixel má tøi byty (24 bit)
 
-			memcpy(&blue, &bitmap_read_buff[padding + (i * bm_width + j) * 3], 1);
-			memcpy(&green, &bitmap_read_buff[padding + (i * bm_width + j) * 3 + 1], 1);
-			memcpy(&red, &bitmap_read_buff[padding + (i * bm_width + j) * 3 + 2], 1);
+			memcpy(&blue, &bitmap_read_buff[padding + pixel_pos], 1);
+			memcpy(&green, &bitmap_read_buff[padding + pixel_pos + 1], 1);
+			memcpy(&red, &bitmap_read_buff[padding + pixel_pos + 2], 1);
 
 			x.bitmap[i][j].set_color_rgb(red, green, blue); // BMP pouívá poøadí barev BGR místo RGB
 		}
@@ -383,7 +435,7 @@ std::ofstream& operator<<(std::ofstream& out, Obraz<Pixel_24bit>& x) {
 	unsigned char file_header_write_buff[FILE_HEADER_SIZE_BYTES]; // Buffer pro BMP hlavièku (prvních 14 bytù souboru)
 	unsigned char info_header_write_buff[INFO_HEADER_SIZE_BYTES]; // Buffer pro informaèní hlavièku souboru BMP (následujících 4O bytù)
 
-	int pad_bytes_count = 4 - ((x.width * 3) % 4); // Násobení tøemi protoe kadı pixel má tøi byty (24 bit)
+	int32_t pad_bytes_count = ((x.width * 3) % 4); // Násobení tøemi protoe kadı pixel má tøi byty (24 bit)
 
 	/* Promìnné pro konkrétní data souborové hlavièky */
 	unsigned char signature[2] = {'B', 'M'}; // Slouí pro identifikaci souboru jako BMP
@@ -443,12 +495,14 @@ std::ofstream& operator<<(std::ofstream& out, Obraz<Pixel_24bit>& x) {
 int main() {
 	std::cout << "Hello World" << std::endl;
 
-	Obraz<Pixel_24bit> A;
+	Obraz<Pixel_24bit> A, B;
 
 	std::ifstream file;
-	file.open("bmp_test_input_24bit.bmp", std::ios::binary | std::ios::in);
+	file.open("mikulka.bmp", std::ios::binary | std::ios::in);
 
 	file >> A;
+
+	B = ~A;
 
 	std::ofstream ofile;
 	ofile.open("testoutput.bmp", std::ios::binary | std::ios::out);
@@ -457,5 +511,11 @@ int main() {
 	file.close();
 	ofile.close();
 
+	if (A == B) {
+		std::cout << "Rovna se!";
+	}
+	if (A != B) {
+		std::cout << "Nerovna se!";
+	}
 	return 0;
 }
