@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include <cstdint> // uinty
-#include <bitset> //bin dump
+#include <cstdint> // integery
 #include <cstddef> //std::byte
+#include <cmath>
 
 #define FILE_HEADER_SIZE_BYTES 14
 #define INFO_HEADER_SIZE_BYTES 40
@@ -37,9 +37,21 @@ template<class T> class Obraz {
 	int32_t width, height;
 
 public:
-	//// inicializaèní konstruktor
+	// inicializaèní konstruktor
 	Obraz() {
 
+	}
+
+	Obraz(int32_t width, int32_t height) {
+		bitmap = new T * [this->height = height];
+		for (int32_t i = 0; i < height; i++) {
+			bitmap[i] = new T[this->width = width];
+		}
+
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++)
+				bitmap[i][j] = NULL;
+		}
 	}
 
 	// Kopírovací konstruktor
@@ -58,11 +70,6 @@ public:
 		}
 	}
 
-	//// Konverzní konstruktor
-	//Obraz() {
-
-	//}
-
 	// Destruktor dealokující pole bitové mapy
 	~Obraz() {
 		for (int32_t i = 0; i < this->height; i++) {
@@ -71,46 +78,70 @@ public:
 		delete[] bitmap;
 	}
 
-	// Funkce pro filtraci obrazu, prahování, detekci objektu
-	Obraz filter() {
-		Obraz result();
+	Obraz color_to_grayscale() {
 
-		return result;
 	}
 	Obraz prahovani() {
 		Obraz result();
 
 		return result;
 	}
-	Obraz object_detection() {
-		Obraz result();
 
-		return result;
-	}
-
-	// Binární operátory +, -, * (konvoluce), +=, -=
-	friend Obraz operator+(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator-(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator*(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator+=(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator-=(const Obraz& operand1, const Obraz& operand2);
+	// Binární operátory +, -
+	template<class P> friend Obraz<P> operator+(const Obraz<P>& operand1, const Obraz<P>& operand2);
+	template<class P> friend Obraz<P> operator-(const Obraz<P>& operand1, const Obraz<P>& operand2);
 
 	// Unární operátor ~ pro výpoèet negativu
 	Obraz operator~() {
-		Obraz result();
+		Obraz result;
 
 		return result;
 	}
 
 	// Operátory pro rovnost, nerovnost, pøiøazení
 	Obraz& operator==(const Obraz& operand) {
+		if (width != operand.width) return false;
+		if (height != operand.height) return false;
 
+		for (int32_t i = 0; i < height; i++) {
+			for (uint32_t j = 0; j < width; j++) {
+				if (bitmap[i][j] != operand.bitmap[i][j]) return false;
+			}
+		}
+
+		return true;
 	}
 	Obraz& operator!=(const Obraz& operand) {
-
+		return !(*this == operand);
 	}
 	Obraz& operator=(const Obraz& operand) {
+		if (bitmap != NULL) {
+			for (int32_t i = 0; i < height; i++) {
+				delete[] bitmap[i];
+			}
+			delete[] bitmap;
+		}
 
+		bitmap = new T * [height = operand.height];
+		for (int32_t i = 0; i < height; i++) {
+			bitmap[i] = new T[width = operand.width];
+		}
+
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
+				bitmap[i][j] = operand.bitmap[i][j];
+			}
+		}
+
+		return *this;
+	}
+	Obraz operator+=(const Obraz& operand) {
+		*this = *this + operand;
+		return *this;
+	}
+	Obraz operator-=(const Obraz& operand) {
+		*this = *this - operand;
+		return *this;
 	}
 
 	// Operátor [] pro vracení/pøiøazení intenzity pixelu
@@ -175,11 +206,6 @@ public:
 		}
 	}
 
-	//// Konverzní konstruktor
-	//Obraz() {
-
-	//}
-
 	// Destruktor dealokující pole bitové mapy
 	~Obraz() {
 		for (int32_t i = 0; i < this->height; i++) {
@@ -188,29 +214,64 @@ public:
 		delete[] bitmap;
 	}
 
-	// Funkce pro filtraci obrazu, prahování, detekci objektu
-	//Obraz filter() {
-	//	Obraz result();
+	// https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
+	Obraz<Pixel_24bit> color_to_grayscale() {
+		Obraz<Pixel_24bit> result(width, height);
 
-	//	return result;
-	//}
-	//Obraz prahovani() {
-	//	Obraz result();
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
+				float red = (float)bitmap[i][j].get_red() / 255.0f;
+				float green = (float)bitmap[i][j].get_green() / 255.0f;
+				float blue = (float)bitmap[i][j].get_blue() / 255.0f;
 
-	//	return result;
-	//}
-	//Obraz object_detection() {
-	//	Obraz result();
+				float red_linear;
+				if (red <= 0.04045) red_linear = red / 12.92;
+				else red_linear = pow((red + 0.055) / 1.055, 2.4);
+				float green_linear;
+				if (green <= 0.04045) green_linear = green / 12.92;
+				else green_linear = pow((green + 0.055) / 1.055, 2.4);
+				float blue_linear;
+				if (blue <= 0.04045) blue_linear = blue / 12.92;
+				else blue_linear = pow((blue + 0.055) / 1.055, 2.4);
 
-	//	return result;
-	//}
+				float Y_linear = 0.2126 * red_linear + 0.7152 * green_linear + 0.0722 * blue_linear;
 
-	// Binární operátory +, -, * (konvoluce), +=, -=
-	friend Obraz operator+(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator-(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator*(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator+=(const Obraz& operand1, const Obraz& operand2);
-	friend Obraz operator-=(const Obraz& operand1, const Obraz& operand2);
+				float Y_rgb;
+				if (Y_linear <= 0.0031308) Y_rgb = 12.92 * Y_linear;
+				else Y_rgb = 1.055 * pow(Y_linear, 1 / 2.4);
+
+				uint8_t Y_rgb_int = Y_rgb * 255;
+
+				result.bitmap[i][j].set_color_rgb(Y_rgb_int, Y_rgb_int, Y_rgb_int);
+			}
+		}
+
+		return result;
+	}
+	// https://cs.wikipedia.org/wiki/Prahov%C3%A1n%C3%AD
+	Obraz<Pixel_24bit> prahovani(uint8_t threshhold_value, uint8_t low, uint8_t high) {
+		Obraz<Pixel_24bit> result(width, height);
+
+		result = color_to_grayscale();
+
+		for (int32_t i = 0; i < height; i++) {
+			for (int32_t j = 0; j < width; j++) {
+				if (result.bitmap[i][j].get_red() < threshhold_value) {
+					result.bitmap[i][j].set_color_rgb(low, low, low);
+				}
+				else if (result.bitmap[i][j].get_red() >= threshhold_value) {
+					result.bitmap[i][j].set_color_rgb(high, high, high);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	// Binární operátory +, -
+	friend Obraz<Pixel_24bit> operator+(const Obraz<Pixel_24bit>& operand1, const Obraz<Pixel_24bit>& operand2);
+	friend Obraz<Pixel_24bit> operator-(const Obraz<Pixel_24bit>& operand1, const Obraz<Pixel_24bit>& operand2);
+
 
 	// Unární operátor ~ pro výpoèet negativu
 	Obraz<Pixel_24bit> operator~() {
@@ -245,7 +306,7 @@ public:
 		return true;
 	}
 	bool operator!=(const Obraz& operand) {
-		return !(*this == operand);
+		return !(*this == operand); // YEP
 	}
 	Obraz& operator=(const Obraz& operand) {
 		if (bitmap != NULL) {
@@ -268,6 +329,14 @@ public:
 
 		return *this;
 	}
+	Obraz operator+=(const Obraz& operand) {
+		*this = *this + operand;
+		return *this;
+	}
+	Obraz operator-=(const Obraz& operand) {
+		*this = *this - operand;
+		return *this;
+	}
 
 	// Operátor [] pro vracení/pøiøazení intenzity pixelu
 	Pixel_24bit* operator[](int32_t i) const {
@@ -281,42 +350,56 @@ public:
 	friend std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x);
 };
 
-//// Binární operátor +
-//Obraz operator+(const Obraz& operand1, const Obraz& operand2) {
-//	Obraz result();
-//
-//	return result;
-//}
-//// Binární operátor -
-//Obraz operator-(const Obraz& operand1, const Obraz& operand2) {
-//	Obraz result();
-//
-//	return result;
-//}
-//// Binární operátor * (konvoluce)
-//Obraz operator*(const Obraz& operand1, const Obraz& operand2) {
-//	Obraz result();
-//
-//	return result;
-//}
-//// Binární operátor +=
-//Obraz operator+=(const Obraz& operand1, const Obraz& operand2) {
-//	Obraz result();
-//
-//	return result;
-//}
-//// Binární operátor -=
-//Obraz operator-=(const Obraz& operand1, const Obraz& operand2) {
-//	Obraz result();
-//
-//	return result;
-//}
-//
-//// Operátor << pro uložení do souboru
-//std::ostream& operator<<(std::ostream& out, Obraz& x) {
-//
-//	return out;
-//}
+// Binární operátor +
+Obraz<Pixel_24bit> operator+(const Obraz<Pixel_24bit>& operand1, const Obraz<Pixel_24bit>& operand2) {
+	// Musíme ovìøit zda jsou obrázky stejnì velké
+	if (operand1.width != operand2.width || operand1.height != operand2.height) {
+		throw((std::string)"Both images must have the same dimesions!");
+	}
+
+	Obraz<Pixel_24bit> result(operand1.width, operand1.height);
+
+	for (int32_t i = 0; i < operand1.height; i++) {
+		for (int32_t j = 0; j < operand1.width; j++) {
+			int red = operand1.bitmap[i][j].get_red() + operand2.bitmap[i][j].get_red();
+			int green = operand1.bitmap[i][j].get_green() + operand2.bitmap[i][j].get_green();
+			int blue = operand1.bitmap[i][j].get_blue() + operand2.bitmap[i][j].get_blue();
+
+			if (red > 255) red = 255;
+			if (green > 255) green = 255;
+			if (blue > 255) blue = 255;
+
+			result.bitmap[i][j].set_color_rgb(red, green, blue);
+		}
+	}
+
+	return result;
+}
+// Binární operátor -
+Obraz<Pixel_24bit> operator-(const Obraz<Pixel_24bit>& operand1, const Obraz<Pixel_24bit>& operand2) {
+	// Musíme ovìøit zda jsou obrázky stejnì velké
+	if (operand1.width != operand2.width || operand1.height != operand2.height) {
+		throw((std::string)"Both images must have the same dimesions!");
+	}
+
+	Obraz<Pixel_24bit> result(operand1.width, operand1.height);
+
+	for (int32_t i = 0; i < operand1.height; i++) {
+		for (int32_t j = 0; j < operand1.width; j++) {
+			int red = operand1.bitmap[i][j].get_red() - operand2.bitmap[i][j].get_red();
+			int green = operand1.bitmap[i][j].get_green() - operand2.bitmap[i][j].get_green();
+			int blue = operand1.bitmap[i][j].get_blue() - operand2.bitmap[i][j].get_blue();
+
+			if (red < 0) red = 0;
+			if (green < 0) green = 0;
+			if (blue < 0) blue = 0;
+
+			result.bitmap[i][j].set_color_rgb(red, green, blue);
+		}
+	}
+
+	return result;
+}
 
 // Operátor >> pro naètení obrazu z 24 bitového BMP souboru
 std::ifstream& operator>>(std::ifstream& in, Obraz<Pixel_24bit>& x) {
@@ -492,30 +575,74 @@ std::ofstream& operator<<(std::ofstream& out, Obraz<Pixel_24bit>& x) {
 	return out;
 }
 
-int main() {
-	std::cout << "Hello World" << std::endl;
+int main(int argc, char* argv[]) {
+	std::string input1_path = argv[1];
+	std::string input2_path = argv[2];
 
-	Obraz<Pixel_24bit> A, B;
+	std::ifstream input1_file, input2_file;
+	std::ofstream output_file;
 
-	std::ifstream file;
-	file.open("mikulka.bmp", std::ios::binary | std::ios::in);
+	input1_file.open(input1_path, std::ios::binary | std::ios::in);
+	input2_file.open(input2_path, std::ios::binary | std::ios::in);
 
-	file >> A;
+	Obraz<Pixel_24bit> input1_obraz, input2_obraz, output_obraz;
+	
+	input1_file >> input1_obraz;
+	input2_file >> input2_obraz;
 
-	B = ~A;
+	// 01 Souèet +
+	output_obraz = input1_obraz + input2_obraz;
+	output_file.open("01_soucet.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
 
-	std::ofstream ofile;
-	ofile.open("testoutput.bmp", std::ios::binary | std::ios::out);
-	ofile << A;
+	// 02 Rozdil -
+	output_obraz = input1_obraz - input2_obraz;
+	output_file.open("02_rozdil.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
 
-	file.close();
-	ofile.close();
+	// 03 Souèet +=
+	output_obraz = input1_obraz;
+	output_obraz += input2_obraz;
+	output_file.open("03_soucet.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
 
-	if (A == B) {
-		std::cout << "Rovna se!";
+	// 04 Rozdil -=
+	output_obraz = input1_obraz;
+	output_obraz -= input2_obraz;
+	output_file.open("04_rozdil.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
+
+	// 05 Negativ ~
+	output_obraz = input1_obraz;
+	~output_obraz;
+	output_file.open("05_negativ.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
+
+	// 06 Grayscale funkce
+	output_obraz = input1_obraz;
+	output_obraz = input1_obraz.color_to_grayscale();
+	output_file.open("06_grayscale.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
+
+	// 07 Prahovani funkce
+	output_obraz = input1_obraz;
+	output_obraz = input1_obraz.prahovani(127, 0, 255);
+	output_file.open("07_prahovani.bmp", std::ios::binary | std::ios::out);
+	output_file << output_obraz;
+	output_file.close();
+
+	if (input1_obraz == input2_obraz) {
+		std::cout << "Rovna se!" << std::endl;
 	}
-	if (A != B) {
-		std::cout << "Nerovna se!";
+	if (input1_obraz != input2_obraz) {
+		std::cout << "Nerovna se!" << std::endl;
 	}
+
 	return 0;
 }
